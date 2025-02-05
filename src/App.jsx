@@ -3,41 +3,34 @@ import Search from "./components/search";
 import Spinner from "./components/spinner";
 import MovieCard from "./components/movieCard";
 
-const API_BASE_URL = "https://api.themoviedb.org/3";
-const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
-const API_OPTIONS = {
-  method: "GET",
-  headers: {
-    accept: "application/json",
-    authorization: `Bearer ${API_KEY}`,
-  },
-};
-
 const App = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [movies, setMovies] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
+  const API_URL = `https://api.themoviedb.org/3/discover/movie?sort_by=popularity.desc&api_key=${API_KEY}`;
+
   const fetchMovies = async () => {
     setIsLoading(true);
     setErrorMessage("");
+
     try {
-      const endpoint = `${API_BASE_URL}/discover/movie?sort_by=popularity.desc`;
-      const response = await fetch(endpoint, API_OPTIONS);
-      if (!response.ok) {
-        throw new Error("Error fetching movies. Please try again later.");
-      }
-      const data = response.json();
-      if (data.response === "False") {
-        setErrorMessage(data.Error || "Failed to fetch movies.");
+      const response = await fetch(API_URL);
+      if (!response.ok) throw new Error("Error fetching movies.");
+
+      const data = await response.json();
+      if (!data.results) {
+        setErrorMessage("No movies found.");
         setMovies([]);
         return;
       }
-      setMovies(data.results || []);
+
+      setMovies(data.results);
     } catch (error) {
-      console.log(`error fetching movies: ${error.message}`);
-      setErrorMessage("Error fetching movies. Please try again later. ");
+      console.error(`Error fetching movies: ${error.message}`);
+      setErrorMessage("Error fetching movies. Please try again later.");
     } finally {
       setIsLoading(false);
     }
@@ -63,13 +56,15 @@ const App = () => {
         <section className="all-movies">
           <h2 className="mt-[40px]">All Movies</h2>
           {isLoading ? (
-            <p className="text-white"><Spinner/></p>
+            <p className="text-white">
+              <Spinner />
+            </p>
           ) : errorMessage ? (
             <p className="text-red-500">{errorMessage}</p>
           ) : (
             <ul>
               {movies.map((movie) => (
-                <MovieCard key={movie.id} movie={movie}/>
+                <MovieCard key={movie.imdbID} movie={movie} />
               ))}
             </ul>
           )}
